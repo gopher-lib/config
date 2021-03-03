@@ -1,4 +1,4 @@
-module github.com/golang-config/config
+module github.com/gopher-lib/config
 
 go 1.16
 
