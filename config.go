@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -31,7 +30,9 @@ func Load(rawVal interface{}, filename string, envPath ...string) error {
 		return fmt.Errorf("failed to read in config: %w", err)
 	}
 
-	replaceEnv(viper.AllKeys())
+	for _, key := range viper.AllKeys() {
+		viper.Set(key, os.Expand(viper.GetString(key), mapping))
+	}
 
 	err = viper.Unmarshal(&rawVal)
 	if err != nil {
@@ -40,17 +41,10 @@ func Load(rawVal interface{}, filename string, envPath ...string) error {
 	return nil
 }
 
-var validEnv = regexp.MustCompile(`^\$\{[a-zA-Z_]+[a-zA-Z0-9_]*\}$`)
-
-func replaceEnv(keys []string) {
-	for _, key := range keys {
-		old := viper.GetString(key)
-		var new string
-		if validEnv.MatchString(old) {
-			new = os.Getenv(old[2 : len(old)-1])
-		} else {
-			new = old
-		}
-		viper.Set(key, new)
+// mapping is second argument for os.Expand function.
+func mapping(s string) string {
+	if strings.HasPrefix(s, "$") {
+		return s
 	}
+	return os.Getenv(s)
 }

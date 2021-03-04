@@ -11,13 +11,14 @@ func TestLoad(t *testing.T) {
 			Port    int
 			Secret1 string
 			Secret2 string
+			Dollar  string
 		}
 		var conf Config
 		err := Load(&conf, "testdata/config.testing.yaml", "testdata/.env.testing")
 		if err != nil {
 			t.Fatalf("error loading config: %v\n", err)
 		}
-		expected := Config{5432, "secret-value", ""}
+		expected := Config{5432, "secret-value", "", "$money"}
 		if !reflect.DeepEqual(conf, expected) {
 			t.Errorf("not equal: %v != %v", conf, expected)
 		}
@@ -29,15 +30,16 @@ func TestLoad(t *testing.T) {
 			Password string
 		}
 		type Config struct {
-			Port int
-			DB   DB
+			Port             int
+			DB               DB
+			ConnectionString string
 		}
 		var conf Config
 		err := Load(&conf, "testdata/config.testing.yaml", "testdata/.env.testing")
 		if err != nil {
 			t.Fatalf("error loading config: %v\n", err)
 		}
-		expected := Config{5432, DB{"admin", "root"}}
+		expected := Config{5432, DB{"admin", "root"}, "postgres:root@localhost:5432/core"}
 		if !reflect.DeepEqual(conf, expected) {
 			t.Errorf("not equal: %v != %v", conf, expected)
 		}
