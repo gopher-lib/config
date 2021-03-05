@@ -14,11 +14,11 @@ func TestLoad(t *testing.T) {
 			Dollar  string
 		}
 		var conf Config
-		err := Load(&conf, "testdata/config.testing.yaml", "testdata/.env.testing")
+		err := Load(&conf, f.simple.config, f.simple.env)
 		if err != nil {
 			t.Fatalf("error loading config: %v\n", err)
 		}
-		expected := Config{5432, "secret-value", "", "$money"}
+		expected := Config{8080, "secret-value", "", "$money"}
 		if !reflect.DeepEqual(conf, expected) {
 			t.Errorf("not equal: %v != %v", conf, expected)
 		}
@@ -35,11 +35,11 @@ func TestLoad(t *testing.T) {
 			ConnectionString string
 		}
 		var conf Config
-		err := Load(&conf, "testdata/config.testing.yaml", "testdata/.env.testing")
+		err := Load(&conf, f.complex.config, f.complex.env)
 		if err != nil {
 			t.Fatalf("error loading config: %v\n", err)
 		}
-		expected := Config{5432, DB{"admin", "root"}, "postgres:root@localhost:5432/core"}
+		expected := Config{8080, DB{"root", "admin"}, "root:admin@tcp(localhost:3306)/core?parseTime=true"}
 		if !reflect.DeepEqual(conf, expected) {
 			t.Errorf("not equal: %v != %v", conf, expected)
 		}

@@ -1,8 +1,8 @@
-port: 5432
+port: 8080
 secret1: ${SOME_SECRET}
 secret2: ${SECRET}
-db:
-  user: admin
-  password: ${DB_PASSWORD}
-connectionString: "${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 dollar: $$money
+db:
+  user: root
+  password: ${DB_PASSWORD}
+connectionString: "${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOST}:${DB_PORT})/${DB_NAME}?parseTime=true"
