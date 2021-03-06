@@ -2,32 +2,34 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-// Load loads configuration from provided file, interpolates
-// environement variables and then unmarshals it into provided struct.
-func Load(rawVal interface{}, filename string, envPath ...string) error {
+func LoadFile(rawVal interface{}, filename string, envPath ...string) error {
 	if len(envPath) > 0 && envPath[0] != "" {
 		if err := godotenv.Load(envPath[0]); err != nil {
-			return fmt.Errorf("failed to load env. file: %v", err)
+			return fmt.Errorf("config: failed to load env. file: %v", err)
 		}
 	} else {
 		// Ignore error as we are loading default env. file.
 		_ = godotenv.Load(".env")
 	}
-
-	viper.SetConfigName(strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filepath.Base(filename))))
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(filepath.Dir(filename))
-	err := viper.ReadInConfig() // Find and read the config file
+	f, err := os.Open(filename)
 	if err != nil {
-		return fmt.Errorf("failed to read in config: %w", err)
+		return fmt.Errorf("config: failed to open config file: %v", err)
+	}
+	return Load(f, rawVal)
+}
+
+func Load(in io.Reader, rawVal interface{}) error {
+	err := viper.ReadConfig(in)
+	if err != nil {
+		return fmt.Errorf("config: failed to read in config: %w", err)
 	}
 
 	for _, key := range viper.AllKeys() {
@@ -36,7 +38,7 @@ func Load(rawVal interface{}, filename string, envPath ...string) error {
 
 	err = viper.Unmarshal(&rawVal)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal config: %w", err)
+		return fmt.Errorf("config: failed to unmarshal config: %w", err)
 	}
 	return nil
 }

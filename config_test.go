@@ -2,29 +2,36 @@ package config
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
-func TestLoad(t *testing.T) {
-	t.Run("simple config with interpolation", func(t *testing.T) {
-		type Config struct {
-			Port    int
-			Secret1 string
-			Secret2 string
-			Dollar  string
-		}
-		var conf Config
-		err := Load(&conf, f.simple.config, f.simple.env)
-		if err != nil {
-			t.Fatalf("error loading config: %v\n", err)
-		}
-		expected := Config{8080, "secret-value", "", "$money"}
-		if !reflect.DeepEqual(conf, expected) {
-			t.Errorf("not equal: %v != %v", conf, expected)
-		}
-	})
+func TestLoadFile(t *testing.T) {
+	type Config struct {
+		Port    int
+		Secret1 string
+		Secret2 string
+		Dollar  string
+	}
+	var conf Config
+	err := LoadFile(&conf, "./testdata/config.testing.yaml", "./testdata/.env.testing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := Config{8080, "secret-value", "", "$money"}
+	if !reflect.DeepEqual(conf, expected) {
+		t.Errorf("not equal: %v != %v", conf, expected)
+	}
+}
 
+func TestLoad(t *testing.T) {
 	t.Run("more complex config with interpolation", func(t *testing.T) {
+		const confStr = `
+		db:
+  	user: root
+  	password: ${DB_PASSWORD}
+		connectionString: "${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOST}:${DB_PORT})/${DB_NAME}?parseTime=true"
+		`
 		type DB struct {
 			User     string
 			Password string
@@ -35,7 +42,7 @@ func TestLoad(t *testing.T) {
 			ConnectionString string
 		}
 		var conf Config
-		err := Load(&conf, f.complex.config, f.complex.env)
+		err := Load(strings.NewReader(confStr), &conf)
 		if err != nil {
 			t.Fatalf("error loading config: %v\n", err)
 		}
