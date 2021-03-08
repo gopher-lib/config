@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -23,17 +24,19 @@ func LoadFile(rawVal interface{}, filename string, envPath ...string) error {
 	if err != nil {
 		return fmt.Errorf("config: failed to open config file: %v", err)
 	}
-	return Load(f, rawVal)
+	return Load(f, rawVal, strings.TrimPrefix(filepath.Ext(filename), "."))
 }
 
-func Load(in io.Reader, rawVal interface{}) error {
+func Load(in io.Reader, rawVal interface{}, configType string) error {
+	viper.SetConfigType(configType)
 	err := viper.ReadConfig(in)
 	if err != nil {
 		return fmt.Errorf("config: failed to read in config: %w", err)
 	}
 
 	for _, key := range viper.AllKeys() {
-		viper.Set(key, os.Expand(viper.GetString(key), mapping))
+		newKey := os.Expand(viper.GetString(key), mapping)
+		viper.Set(key, newKey)
 	}
 
 	err = viper.Unmarshal(&rawVal)

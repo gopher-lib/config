@@ -1,7 +1,7 @@
 port: 8080
-secret1: ${SOME_SECRET}
-secret2: ${SECRET}
-dollar: $$money
+authSecret: ${AUTH_SECRET}
+secret: ${SECRET}
+dollar: $$dollar
 db:
   user: root
   password: ${DB_PASSWORD}
