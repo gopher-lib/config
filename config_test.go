@@ -36,7 +36,7 @@ func TestLoadFile(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	t.Run("complex config", func(t *testing.T) {
+	t.Run("variable substitution", func(t *testing.T) {
 		viper.Reset()
 
 		os.Setenv("DB_PASSWORD", "root")
@@ -45,21 +45,23 @@ port: 1234
 db:
   user: postgres
   password: ${DB_PASSWORD}
+empty: emp${T}ty
 `
 		type DB struct {
 			User     string
 			Password string
 		}
 		type Config struct {
-			Port int
-			DB   DB
+			Port  int
+			DB    DB
+			Empty string
 		}
 		var conf Config
 		err := Load(strings.NewReader(confStr), &conf, "yaml")
 		if err != nil {
 			t.Fatal(err)
 		}
-		expected := Config{1234, DB{"postgres", "root"}}
+		expected := Config{1234, DB{"postgres", "root"}, "empty"}
 		if !reflect.DeepEqual(conf, expected) {
 			t.Errorf("not equal: %v != %v", conf, expected)
 		}
