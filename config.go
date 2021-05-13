@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -17,7 +18,7 @@ func LoadFile(rawVal interface{}, filename string, envPath ...string) error {
 			return fmt.Errorf("config: failed to load env. file: %v", err)
 		}
 	} else {
-		// Ignore error as we are loading default env. file.
+		// Ignore error because we are loading default env. file.
 		_ = godotenv.Load(".env")
 	}
 	f, err := os.Open(filename)
@@ -46,10 +47,41 @@ func Load(in io.Reader, rawVal interface{}, configType string) error {
 	return nil
 }
 
+var pattern = regexp.MustCompile("(?i)[_a-z][_a-z0-9]*")
+
 // mapping is second argument for os.Expand function.
 func mapping(s string) string {
-	if strings.HasPrefix(s, "$") {
+	loc := pattern.FindStringIndex(s)
+	// if no match then silently ignore it.
+	if loc == nil {
 		return s
 	}
-	return os.Getenv(s)
+	key := s[loc[0]:loc[1]]
+	switch m := s[loc[1]:]; {
+	case strings.HasPrefix(m, ":-"):
+		val := os.Getenv(key)
+		if val == "" {
+			return m[2:]
+		}
+		return val
+	case strings.HasPrefix(m, "-"):
+		val, found := os.LookupEnv(key)
+		if found {
+			return val
+		}
+		return m[1:]
+	case strings.HasPrefix(m, ":?"):
+		val := os.Getenv(key)
+		if val == "" {
+			panic(m[2:])
+		}
+		return val
+	case strings.HasPrefix(m, "?"):
+		val, found := os.LookupEnv(key)
+		if found {
+			return val
+		}
+		panic(m[1:])
+	}
+	return os.Getenv(key)
 }
