@@ -101,7 +101,7 @@ func mapping(s string) string {
 		if found {
 			return val
 		}
-		message := m[2:]
+		message := m[1:]
 		if message == "" {
 			message = key + " is not set"
 		}
