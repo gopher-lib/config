@@ -1,8 +1,0 @@
-port: 8080
-authSecret: ${AUTH_SECRET}
-secret: ${SECRET}
-dollar: $$dollar
-db:
-  user: root
-  password: ${DB_PASSWORD}
-connectionString: "${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOST}:${DB_PORT})/${DB_NAME}?parseTime=true"

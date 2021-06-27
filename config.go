@@ -8,27 +8,43 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-func LoadFile(rawVal interface{}, filename string, envPath ...string) error {
-	if len(envPath) > 0 && envPath[0] != "" {
-		if err := godotenv.Load(envPath[0]); err != nil {
-			return fmt.Errorf("config: failed to load env. file: %v", err)
-		}
-	} else {
-		// Ignore error because we are loading default env. file.
-		_ = godotenv.Load(".env")
-	}
-	f, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("config: failed to open config file: %v", err)
-	}
-	return Load(f, rawVal, strings.TrimPrefix(filepath.Ext(filename), "."))
+const (
+	YAML = "yaml"
+	JSON = "json"
+	TOML = "toml"
+)
+
+var supportedFormats = map[string]bool{
+	YAML: true,
+	JSON: true,
+	TOML: true,
 }
 
-func Load(in io.Reader, rawVal interface{}, configType string) error {
+// LoadFile reads configuration data from filename
+// and unmarshals it into v.
+//
+// Internally it calls Load.
+func LoadFile(v interface{}, filename string) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("config: failed to open config file: %w", err)
+	}
+	return Load(f, v, strings.TrimPrefix(filepath.Ext(filename), "."))
+}
+
+// Load reads configuration data encoded in the format specified by configType from in
+// and unmarshals it into v.
+//
+// Load returns an error when data is in wrong or unsupported format,
+// or when it failed to unmarshal data into v.
+func Load(in io.Reader, v interface{}, configType string) error {
+	if !supportedFormats[configType] {
+		return fmt.Errorf("config: %s - unsupported configuration format", configType)
+	}
+
 	viper.SetConfigType(configType)
 	err := viper.ReadConfig(in)
 	if err != nil {
@@ -40,7 +56,7 @@ func Load(in io.Reader, rawVal interface{}, configType string) error {
 		viper.Set(key, newKey)
 	}
 
-	err = viper.Unmarshal(&rawVal)
+	err = viper.Unmarshal(&v)
 	if err != nil {
 		return fmt.Errorf("config: failed to unmarshal config: %w", err)
 	}
@@ -73,7 +89,11 @@ func mapping(s string) string {
 	case strings.HasPrefix(m, ":?"):
 		val := os.Getenv(key)
 		if val == "" {
-			panic(m[2:])
+			message := m[2:]
+			if message == "" {
+				message = key + " is empty or not set"
+			}
+			panic(message)
 		}
 		return val
 	case strings.HasPrefix(m, "?"):
@@ -81,7 +101,11 @@ func mapping(s string) string {
 		if found {
 			return val
 		}
-		panic(m[1:])
+		message := m[2:]
+		if message == "" {
+			message = key + " is not set"
+		}
+		panic(message)
 	}
 	return os.Getenv(key)
 }
