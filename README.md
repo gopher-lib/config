@@ -12,3 +12,5 @@
   - ${VARIABLE?err} panics with an error message containing err if VARIABLE is unset in the environment.
 
 Examples:
+
+- [Config with a default port value for an HTTP server](/_examples/main.go)
