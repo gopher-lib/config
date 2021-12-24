@@ -1,21 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os"
+	"net/http"
 
 	"github.com/gopher-lib/config"
 )
 
-type appconfig struct {
-	Port string
-}
-
 func main() {
-	os.Setenv("PORT", "")
-	var conf appconfig
-	err := config.LoadFile(&conf, "./configs/config.yaml")
-	if err != nil {
-		log.Fatal(err)
+	var cfg struct {
+		Port uint
 	}
+	err := config.LoadFile("configs/config.yaml", &cfg)
+	if err != nil {
+		log.Fatal()
+	}
+
+	addr := fmt.Sprintf(":%d", cfg.Port)
+	log.Printf("Listening on %s...", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }

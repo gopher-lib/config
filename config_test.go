@@ -2,68 +2,69 @@ package config
 
 import (
 	"os"
-	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/spf13/viper"
 )
 
 func TestLoadFile(t *testing.T) {
-	viper.Reset()
+	os.Setenv("VAR_1", "value_1")
+	os.Setenv("VAR_3", "")
+	defer os.Clearenv()
 
-	type db struct {
-		User     string
-		Password string
+	var cfg struct {
+		Key string
 	}
-	type config struct {
-		Port             int
-		AuthSecret       string
-		Secret           string
-		Dollar           string
-		DB               db
-		ConnectionString string
-	}
-	var conf config
-	err := LoadFile(&conf, "./testdata/config.testing.yaml", "./testdata/.env.testing")
+	err := LoadFile(".github/testdata/config.yaml", &cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := config{8080, "secret", "", "$dollar", db{"root", "admin"}, "root:admin@tcp(localhost:3306)/core?parseTime=true"}
-	if !reflect.DeepEqual(conf, expected) {
-		t.Errorf("not equal: %v != %v", conf, expected)
+	if cfg.Key != "value_1" {
+		t.Errorf("cfg.Key = %v, want %v", cfg.Key, "value_1")
 	}
 }
 
 func TestLoad(t *testing.T) {
-	t.Run("variable substitution", func(t *testing.T) {
-		viper.Reset()
+	os.Setenv("VAR_1", "value_1")
+	os.Setenv("VAR_3", "")
+	defer os.Clearenv()
 
-		os.Setenv("DB_PASSWORD", "root")
-		const confStr = `
-port: 1234
-db:
-  user: postgres
-  password: ${DB_PASSWORD}
-empty: emp${T}ty
-`
-		type DB struct {
-			User     string
-			Password string
-		}
-		type Config struct {
-			Port  int
-			DB    DB
-			Empty string
-		}
-		var conf Config
-		err := Load(strings.NewReader(confStr), &conf, "yaml")
-		if err != nil {
-			t.Fatal(err)
-		}
-		expected := Config{1234, DB{"postgres", "root"}, "empty"}
-		if !reflect.DeepEqual(conf, expected) {
-			t.Errorf("not equal: %v != %v", conf, expected)
-		}
-	})
+	var cfg struct {
+		Key string
+	}
+	in := strings.NewReader(
+		`{"key": "${VAR_1}"}`,
+	)
+	err := Load(in, JSON, &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Key != "value_1" {
+		t.Errorf("cfg.Key = %v, want %v", cfg.Key, "value_1")
+	}
+}
+
+func Test_mapping(t *testing.T) {
+	os.Setenv("VAR_1", "value_1")
+	os.Setenv("VAR_3", "")
+	defer os.Clearenv()
+	tests := []struct {
+		name   string
+		argStr string
+		want   string
+	}{
+		{"#1", "${VAR_1}", "value_1"},
+		{"#2", "key:${VAR_1}", "key:value_1"},
+		{"#3", "prefix_${VAR_1}_postfix", "prefix_value_1_postfix"},
+		{"#4", "$$15/h", "$15/h"},
+		{"#5", "${VAR_2-default}", "default"},
+		{"#6", "${VAR_3-default}", ""},
+		{"#7", "${VAR_3:-default}", "default"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := os.Expand(tt.argStr, mapping); got != tt.want {
+				t.Errorf("os.Expand() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
