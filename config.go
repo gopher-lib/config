@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
 
@@ -20,6 +21,8 @@ const (
 	JSON = "json"
 	TOML = "toml"
 )
+
+var OverwriteEnvPrefix = "CONFIG_OVERWRITE_"
 
 var supportedFormats = map[string]bool{
 	YAML: true,
@@ -63,14 +66,19 @@ func Load(in io.Reader, configType string, v interface{}) error {
 
 	// Iterate over all viper keys expanding $VARIABLE and ${VARIABLE} values.
 	for _, key := range viper.AllKeys() {
-		newKey := os.Expand(viper.GetString(key), mapping)
+		newKey, ok := os.LookupEnv(OverwriteEnvPrefix + key)
+		if !ok {
+			newKey = os.Expand(viper.GetString(key), mapping)
+		}
 		viper.Set(key, newKey)
 	}
 	return unmarshal(&v)
 }
 
 func unmarshal(v interface{}) error {
-	err := viper.Unmarshal(&v)
+	err := viper.Unmarshal(&v, func(dc *mapstructure.DecoderConfig) {
+		dc.TagName = "config"
+	})
 	if err != nil {
 		return fmt.Errorf("config: failed to unmarshal config: %w", err)
 	}

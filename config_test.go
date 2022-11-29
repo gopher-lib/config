@@ -25,14 +25,18 @@ func TestLoadFile(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	os.Setenv("VAR_1", "value_1")
-	os.Setenv("VAR_3", "")
+	os.Setenv("CONFIG_OVERWRITE_key2", "")
+	os.Setenv("CONFIG_OVERWRITE_s.innerkey", "3")
 	defer os.Clearenv()
 
 	var cfg struct {
-		Key string
+		Key, Key2 string
+		S         struct {
+			InnerKey uint8
+		}
 	}
 	in := strings.NewReader(
-		`{"key": "${VAR_1}"}`,
+		`{"key": "${VAR_1}", "key2": "${VAR_1}", "s": {"innerKey": 2}}`,
 	)
 	err := Load(in, JSON, &cfg)
 	if err != nil {
@@ -40,6 +44,12 @@ func TestLoad(t *testing.T) {
 	}
 	if cfg.Key != "value_1" {
 		t.Errorf("cfg.Key = %v, want %v", cfg.Key, "value_1")
+	}
+	if cfg.Key2 != "" {
+		t.Errorf("cfg.Key2 = %v, want %v", cfg.Key2, "")
+	}
+	if cfg.S.InnerKey != 3 {
+		t.Errorf("S.InnerKey = %v, want %v", cfg.S.InnerKey, 3)
 	}
 }
 
